@@ -1,0 +1,113 @@
+SUBROUTINE DEMAND WINDOWS 
+
+TARGET=ACCOUNT 
+
+DEFINE
+  CHOICE=NUMBER
+  ERRORTEXT=CHARACTER
+  #INCLUDE "RD.WINDOWS.DEF"
+  [Variables for PowerFrame Doc launch] 
+  HOSTNAME = CHARACTER 
+  PORTNUMBER = CHARACTER 
+END
+
+SETUP 
+  [Set Variables for PowerFrame Doc launch] 
+  IF SYSSYMDIRECTORY<>132 THEN  
+  DO 
+  HOSTNAME = "powerframe-test.jha-sys.com" 
+  PORTNUMBER = "42"+FORMAT("999",SYSSYMDIRECTORY) 
+  END 
+  ELSE 
+  DO 
+  HOSTNAME = "powerframe-prod.jha-sys.com" 
+  PORTNUMBER = "42132" 
+  END
+
+	DIALOGSTART("RS.INFO.LETTERS", 200%, 1) 
+	DIALOGPROMPTCOMBOSTART("Select letter to launch", 0) 
+	DIALOGPROMPTCOMBOOPTION(1, "ABA Letter") 
+	DIALOGPROMPTCOMBOOPTION(2, "Account Chargeoff Letter") 
+	DIALOGPROMPTCOMBOOPTION(3, "Good Standing Letter") 
+	DIALOGPROMPTCOMBOOPTION(4, "Account Open Close Letter") 	
+	DIALOGPROMPTCOMBOEND 
+    DIALOGDISPLAY 
+    CHOICE=ENTERCODE("Select letter to launch", 4, 0) 
+    DIALOGCLOSE 
+    
+ IF CHOICE=1 THEN 
+    DO 
+      [ INITSUBROUTINE(ERRORTEXT) 
+      EXECUTE("ABA.LTR", ERRORTEXT)  ]
+      [ EXECUTE("REGECONFIRMATION", ERRORTEXT)  ] 
+      [ IF ERRORTEXT<>"" THEN POPUPMESSAGE(0, "ERROR"+ERRORTEXT)    ]
+
+      [---Call On Demand Program---] 
+      INITSUBROUTINE(ERRORTEXT)  
+      CALL ERRORCHECKER 
+      
+      [To run PowerFrame Doc] 
+      @ENVARGCHAR2 = HOSTNAME [Host name/IP] 
+      @ENVARGCHAR3 = PORTNUMBER [Port # - normally 42XXX where XXX is the SYM #] 
+      @ENVARGCHAR4 = "ABA_LTR"[PowerFrame Doc set name - should be on the PowerFrame Design Portal] 
+      @ENVARGCHAR5 = "" [String to pass variables to the PowerFrame Doc set] 
+      EXECUTE("RD.POAS.DOC.CALL.SUBR",ERRORTEXT) 
+    END  
+    
+ IF CHOICE=2 THEN 
+    DO 
+      INITSUBROUTINE(ERRORTEXT) 
+      EXECUTE("ACCT.CHOFF.LTR", ERRORTEXT) 
+      IF ERRORTEXT<>"" THEN POPUPMESSAGE(0, "ERROR"+ERRORTEXT)   
+    END    
+    
+ IF CHOICE=3 THEN 
+    DO 
+      [ INITSUBROUTINE(ERRORTEXT) 
+      EXECUTE("GOOD.STAND.LTR", ERRORTEXT) 
+      IF ERRORTEXT<>"" THEN POPUPMESSAGE(0, "ERROR"+ERRORTEXT)    ]
+
+      [---Call On Demand Program---] 
+      INITSUBROUTINE(ERRORTEXT)  
+      CALL ERRORCHECKER 
+      
+      [To run PowerFrame Doc] 
+      @ENVARGCHAR2 = HOSTNAME [Host name/IP] 
+      @ENVARGCHAR3 = PORTNUMBER [Port # - normally 42XXX where XXX is the SYM #] 
+      @ENVARGCHAR4 = "GOOD_STAND_LTR"[PowerFrame Doc set name - should be on the PowerFrame Design Portal] 
+      @ENVARGCHAR5 = "" [String to pass variables to the PowerFrame Doc set] 
+      EXECUTE("RD.POAS.DOC.CALL.SUBR",ERRORTEXT) 
+    END   
+    
+ IF CHOICE=4 THEN 
+    DO 
+      [ INITSUBROUTINE(ERRORTEXT) 
+      EXECUTE("ACCT.OPENCLOSE.LTR", ERRORTEXT) 
+      IF ERRORTEXT<>"" THEN POPUPMESSAGE(0, "ERROR"+ERRORTEXT)    ]
+
+      [---Call On Demand Program---] 
+      INITSUBROUTINE(ERRORTEXT)  
+      CALL ERRORCHECKER 
+      
+      [To run PowerFrame Doc] 
+      @ENVARGCHAR2 = HOSTNAME [Host name/IP] 
+      @ENVARGCHAR3 = PORTNUMBER [Port # - normally 42XXX where XXX is the SYM #] 
+      @ENVARGCHAR4 = "ACCT_OPENCLOSE_LTR"[PowerFrame Doc set name - should be on the PowerFrame Design Portal] 
+      @ENVARGCHAR5 = "" [String to pass variables to the PowerFrame Doc set] 
+      EXECUTE("RD.POAS.DOC.CALL.SUBR",ERRORTEXT) 
+    END        
+     
+END 
+
+PRINT TITLE="" 
+	SUPPRESSNEWLINE 
+END 
+
+PROCEDURE ERRORCHECKER 
+ IF ERRORTEXT <> "EOF" AND 
+ ERRORTEXT <> "" THEN 
+  DO 
+   POPUPMESSAGE(2,""+ERRORTEXT) 
+   TERMINATE 
+  END 
+END 

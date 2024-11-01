@@ -1,0 +1,93 @@
+[REGE    ]
+
+SUBROUTINE DEMAND
+
+WINDOWS 
+
+TARGET=ACCOUNT 
+
+DEFINE 
+  CHOICE=NUMBER 
+  ERRORTEXT=CHARACTER  
+  #INCLUDE "RD.WINDOWS.DEF" 
+  SYMFORMDATE=DATE
+    [Variables for PowerFrame Doc launch] 
+    HOSTNAME = CHARACTER 
+    PORTNUMBER = CHARACTER
+END
+ 
+SETUP 	
+ [Set Variables for PowerFrame Doc launch] 
+ IF SYSSYMDIRECTORY<>132 THEN  
+ DO 
+ HOSTNAME = "powerframe-test.jha-sys.com" 
+ PORTNUMBER = "42"+FORMAT("999",SYSSYMDIRECTORY) 
+ END 
+ ELSE 
+ DO 
+ HOSTNAME = "powerframe-prod.jha-sys.com" 
+ PORTNUMBER = "42132" 
+ END 
+
+
+ DIALOGSTART("REG E", 200%, 1) 
+ DIALOGPROMPTLISTSTART("What Option is the member requesting?",0) 
+ DIALOGPROMPTLISTOPTION(0, "Opt In Options") 
+ DIALOGPROMPTLISTOPTION(1, "Opt In Confirmation Notice") 
+ DIALOGPROMPTLISTOPTION(2, "Reg E Notification") 
+ DIALOGPROMPTLISTEND 
+ DIALOGDISPLAY 
+ CHOICE=ENTERCODE("What Option is the member requesting?",3,0) 
+ DIALOGCLOSE 
+
+ IF CHOICE=0 THEN 
+  DO 
+   INITSUBROUTINE(ERRORTEXT) 
+   EXECUTE("OPTIN", ERRORTEXT) 
+   TERMINATE 
+  END
+ IF CHOICE=1 THEN 
+  DO 
+   [ EXECUTE("REGECONFIRMATION", ERRORTEXT)  ] 
+   [---Call On Demand Program---] 
+   INITSUBROUTINE(ERRORTEXT)  
+   CALL ERRORCHECKER 
+   
+   [To run PowerFrame Doc] 
+   @ENVARGCHAR2 = HOSTNAME [Host name/IP] 
+   @ENVARGCHAR3 = PORTNUMBER [Port # - normally 42XXX where XXX is the SYM #] 
+   @ENVARGCHAR4 = "REGECONFIRMATION"[PowerFrame Doc set name - should be on the PowerFrame Design Portal] 
+   @ENVARGCHAR5 = "" [String to pass variables to the PowerFrame Doc set] 
+   EXECUTE("RD.POAS.DOC.CALL.SUBR",ERRORTEXT) 
+   TERMINATE 
+   END 
+   IF CHOICE=2 THEN 
+   DO 
+   [ INITSUBROUTINE(ERRORTEXT)  ]
+   [ EXECUTE("OPTINNOTICE", ERRORTEXT)  ]
+   [---Call On Demand Program---] 
+   INITSUBROUTINE(ERRORTEXT)  
+   CALL ERRORCHECKER 
+   
+   [To run PowerFrame Doc] 
+   @ENVARGCHAR2 = HOSTNAME [Host name/IP] 
+   @ENVARGCHAR3 = PORTNUMBER [Port # - normally 42XXX where XXX is the SYM #] 
+   @ENVARGCHAR4 = "OPTINNOTICE"[PowerFrame Doc set name - should be on the PowerFrame Design Portal] 
+   @ENVARGCHAR5 = "" [String to pass variables to the PowerFrame Doc set] 
+   EXECUTE("RD.POAS.DOC.CALL.SUBR",ERRORTEXT) 
+   TERMINATE 
+  END 
+END 
+
+PRINT TITLE="REG E" 
+ SUPPRESSNEWLINE	 
+END 
+
+PROCEDURE ERRORCHECKER 
+ IF ERRORTEXT <> "EOF" AND 
+ ERRORTEXT <> "" THEN 
+  DO 
+   POPUPMESSAGE(2,""+ERRORTEXT) 
+   TERMINATE 
+  END 
+END 
